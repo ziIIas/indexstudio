@@ -1,0 +1,10 @@
+# Preserve scripts when checking out on Windows or Unix.
+* text=auto
+*.sh text eol=lf
+*.command text eol=lf
+*.mjs text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.png binary
+*.ico binary
+*.tar.gz binary

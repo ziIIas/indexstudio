@@ -1,0 +1,31 @@
+# Dependencies and generated output
+/node_modules/
+/dist/
+/coverage/
+/releases/
+
+# Personal data and historical local files — never distribute
+/data/
+/seed/
+/exports/
+/private/
+/docs/archive/
+/*.json
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+*.sqlite
+*.sqlite-*
+*.log
+
+# Local configuration and secrets
+.env*
+*.pem
+*.key
+/.openai/
+/.vercel/
+/.wrangler/
+/.verification/
+/outputs/
+/work/
+.DS_Store

@@ -1,0 +1,63 @@
+name: Checks and releases
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, macos-15-intel, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Read release version and validate tag
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            test "$GITHUB_REF_NAME" = "v$version"
+          fi
+      - run: npm ci
+      - run: npm audit --audit-level=low
+      - run: npm run release
+      - name: Verify extracted release without dependencies
+        run: node scripts/verify-archive.mjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: index-studio-${{ matrix.os }}
+          path: |
+            releases/index-studio-${{ env.RELEASE_VERSION }}.tar.gz
+            releases/index-studio-${{ env.RELEASE_VERSION }}.tar.gz.sha256
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: index-studio-ubuntu-latest
+          path: release-assets
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "release-assets/index-studio-${version}.tar.gz" \
+            "release-assets/index-studio-${version}.tar.gz.sha256" \
+            --repo "$GH_REPO" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
